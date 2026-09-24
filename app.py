@@ -18,8 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. Custom CSS Injection for UI enhancement using the provided palette
-# Palette: #EBB3F2 (Light Purple), #6650F2 (Primary Purple), #503FBF (Dark Purple), #79D9AC (Mint), #F27052 (Coral)
+# 2. Custom CSS Injection for UI enhancement
 st.markdown(
     """
     <style>
@@ -29,7 +28,7 @@ st.markdown(
         font-family: 'Inter', sans-serif;
     }
     
-    /* Sidebar Styling with a soft gradient using #EBB3F2 */
+    /* Sidebar Styling */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, rgba(235, 179, 242, 0.15) 0%, rgba(255,255,255,0) 100%);
         border-right: 1px solid rgba(235, 179, 242, 0.5);
@@ -50,7 +49,7 @@ st.markdown(
         color: white !important;
     }
     
-    /* File Uploader border using the Mint Green (#79D9AC) */
+    /* File Uploader border */
     [data-testid="stFileUploadDropzone"] {
         border: 2px dashed #79D9AC !important;
         background-color: rgba(121, 217, 172, 0.05) !important;
@@ -71,6 +70,8 @@ st.markdown(
     /* Custom divider line */
     hr {
         border-top: 2px solid rgba(235, 179, 242, 0.4) !important;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
     }
     </style>
     """,
@@ -84,24 +85,24 @@ st.caption(f"Versión de Python: {platform.python_version()} | Motor: GPT-4o-min
 # Load and display image gracefully
 try:
     image = Image.open('Chat_pdf.png')
-    # Using columns to center the image better in the new layout
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.image(image, use_column_width=True)
 except Exception as e:
-    pass # Silently fail on image missing for a cleaner UI
+    pass 
 
-st.divider()
+# Replaced st.divider() with Markdown compatible with older Streamlit versions
+st.markdown("---")
 
 # Sidebar configuration
 with st.sidebar:
     st.markdown("### ⚙️ Configuración")
     st.markdown("Este Agente te ayudará a realizar análisis sobre el PDF cargado.")
+    
     # Get API key from user
     ke = st.text_input('Ingresa tu Clave de OpenAI', type="password", help="Tu clave API no se guarda.")
     
     if not ke:
-        # Utilizing Coral (#F27052) implicitly through Streamlit's warning state or custom markdown
         st.markdown(
             '<div style="padding:10px; border-radius:8px; background-color:rgba(242, 112, 82, 0.1); color:#F27052; font-weight:500;">'
             '⚠️ Por favor ingresa tu clave de API para continuar.</div>', 
@@ -117,7 +118,6 @@ pdf = st.file_uploader("📂 Carga tu archivo PDF aquí", type="pdf")
 # Process the PDF if uploaded
 if pdf is not None and ke:
     try:
-        # Added a spinner for better UX during processing
         with st.spinner("Procesando y analizando el documento..."):
             pdf_reader = PdfReader(pdf)
             text = ""
@@ -126,7 +126,7 @@ if pdf is not None and ke:
                 if extracted_text:
                     text += extracted_text
             
-            # Validation: Check if text was actually extracted
+            # Validation
             if not text.strip():
                 st.markdown(
                     '<div style="padding:15px; border-left: 5px solid #F27052; background-color:rgba(242, 112, 82, 0.1); border-radius:4px;">'
@@ -135,7 +135,6 @@ if pdf is not None and ke:
                     unsafe_allow_html=True
                 )
             else:
-                # Split text into chunks
                 text_splitter = CharacterTextSplitter(
                     separator="\n",
                     chunk_size=500,
@@ -144,33 +143,28 @@ if pdf is not None and ke:
                 )
                 chunks = text_splitter.split_text(text)
                 
-                # Validation: Check if chunks were generated
                 if not chunks:
                     st.error("⚠️ El documento no generó fragmentos de texto válidos para procesar.")
                 else:
                     st.info(f"✅ Documento procesado: **{len(chunks)} fragmentos** indexados.")
-                    
-                    # Create embeddings and knowledge base
                     embeddings = OpenAIEmbeddings()
                     knowledge_base = FAISS.from_texts(chunks, embeddings)
                     
-        st.divider()
+        # Replaced st.divider()
+        st.markdown("---")
         
         # User question interface
         st.subheader("💡 ¿Qué te gustaría saber?")
         user_question = st.text_area("Formula tu pregunta basada en el texto", placeholder="Ej: ¿Cuáles son las conclusiones principales del autor?", height=100)
         
-        # We use a button to trigger the API call instead of running on every keystroke
         if st.button("Consultar al Documento") and user_question:
             with st.spinner("Generando respuesta..."):
                 docs = knowledge_base.similarity_search(user_question)
                 
-                # Utilizes ChatOpenAI for modern chat models
                 llm = ChatOpenAI(temperature=0, model_name="gpt-4o-mini")
                 chain = load_qa_chain(llm, chain_type="stuff")
                 response = chain.run(input_documents=docs, question=user_question)
                 
-                # Display the response in a styled container
                 st.markdown("### 📝 Respuesta:")
                 with st.container():
                     st.markdown(
