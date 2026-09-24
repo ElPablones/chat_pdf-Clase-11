@@ -1,11 +1,13 @@
 import os
+import traceback
 import streamlit as st
 from PIL import Image
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
-from langchain.llms import OpenAI
+# Updated import for chat models
+from langchain.chat_models import ChatOpenAI
 from langchain.chains.question_answering import load_qa_chain
 import platform
 
@@ -67,9 +69,8 @@ if pdf is not None and ke:
         if user_question:
             docs = knowledge_base.similarity_search(user_question)
             
-            # Use a current model instead of deprecated text-davinci-003
-            # Options: "gpt-3.5-turbo-instruct" or "gpt-4o" depending on your API access
-            llm = OpenAI(temperature=0, model_name="gpt-4o-mini-2024-07-18")
+            # Utilizes ChatOpenAI for modern chat models
+            llm = ChatOpenAI(temperature=0, model_name="gpt-4o-mini")
             
             # Load QA chain
             chain = load_qa_chain(llm, chain_type="stuff")
@@ -83,8 +84,6 @@ if pdf is not None and ke:
                 
     except Exception as e:
         st.error(f"Error al procesar el PDF: {str(e)}")
-        # Add detailed error for debugging
-        import traceback
         st.error(traceback.format_exc())
 elif pdf is not None and not ke:
     st.warning("Por favor ingresa tu clave de API de OpenAI para continuar")
